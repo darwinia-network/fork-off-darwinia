@@ -80,7 +80,8 @@ async function main() {
     progressBar.start(totalChunks, 0);
     const stream = fs.createWriteStream(storagePath, { flags: 'a' });
     stream.write("[");
-    await fetchChunks("0x", chunksLevel, stream);
+    // Exclude prefix "DarwiniaHeaderMMR" for deprecated undeleted keys "Postions"
+    await fetchChunksAndExclude("0x", chunksLevel, stream, "0x69da7b5a8a81510eba25f64ccb5b11a3");
     stream.write("]");
     stream.end();
     progressBar.stop();
@@ -169,7 +170,7 @@ async function fetchChunks(prefix, levelsRemaining, stream) {
   }
 }
 
-async function fetchChunksAdvance(prefix, levelsRemaining, stream, exclude_prefix) {
+async function fetchChunksAndExclude(prefix, levelsRemaining, stream, exclude_prefix) {
   if (levelsRemaining <= 0) {
     if (exclude_prefix.startsWith(prefix)) {
       if (exclude_prefix == prefix) {
@@ -187,19 +188,18 @@ async function fetchChunksAdvance(prefix, levelsRemaining, stream, exclude_prefi
       progressBar.update(++chunksFetched);
       return;
     }
-
   }
 
   // Async fetch the last level
   if (process.env.QUICK_MODE && levelsRemaining == 1) {
     let promises = [];
     for (let i = 0; i < 256; i++) {
-      promises.push(fetchChunks(prefix + i.toString(16).padStart(2, "0"), levelsRemaining - 1, stream));
+      promises.push(fetchChunksAndExclude(prefix + i.toString(16).padStart(2, "0"), levelsRemaining - 1, stream, exclude_prefix));
     }
     await Promise.all(promises);
   } else {
     for (let i = 0; i < 256; i++) {
-      await fetchChunks(prefix + i.toString(16).padStart(2, "0"), levelsRemaining - 1, stream);
+      await fetchChunksAndExclude(prefix + i.toString(16).padStart(2, "0"), levelsRemaining - 1, stream, exclude_prefix);
     }
   }
 }
