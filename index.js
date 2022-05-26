@@ -174,7 +174,7 @@ async function fetchChunksAndExclude(prefix, levelsRemaining, stream, exclude_pr
   if (levelsRemaining <= 0) {
 
     if (exclude_prefix.startsWith(prefix)) {
-      console.log(prefix);
+      console.log(chalk.green(prefix));
       if (exclude_prefix == prefix) {
         return;
       } else {
@@ -182,7 +182,7 @@ async function fetchChunksAndExclude(prefix, levelsRemaining, stream, exclude_pr
         levelsRemaining += 1;
       }
     } else {
-      console.log(prefix);
+      console.log(chalk.green(prefix));
       const pairs = await provider.send('state_getPairs', [prefix]);
       if (pairs.length > 0) {
         separator ? stream.write(",") : separator = true;
