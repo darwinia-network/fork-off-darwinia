@@ -139,6 +139,15 @@ async function main() {
   if (alice !== '') {
     // Set sudo key to //Alice
     forkedSpec.genesis.raw.top['0x5c0d1176a568c1f92944340dbfed9e9c530ebca703c85910e7164cb7d1c9e47b'] = '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d';
+    // TechnicalMembership
+    forkedSpec.genesis.raw.top['0x3a2d6c9353500637d8f8e3e0fa0bb1c5ba7fb8745735dc3be2a2c61a72c39e78'] = '0x04d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d'
+    // TechnicalCommittee
+    forkedSpec.genesis.raw.top['0xed25f63942de25ac5253ba64b5eb64d1ba7fb8745735dc3be2a2c61a72c39e78'] = '0x04d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d'
+    // PhragmenElection
+    // If the token decimal changed, this need to be changed too.
+    forkedSpec.genesis.raw.top['0xe2e62dd81c48a88f73b6f6463555fd8eba7fb8745735dc3be2a2c61a72c39e78'] = '0x04d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0010a5d4e800000000000000000000000010a5d4e80000000000000000000000'
+    // Council
+    forkedSpec.genesis.raw.top['0xaebd463ed9925c488c112434d61debc0ba7fb8745735dc3be2a2c61a72c39e78'] = '0x04d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d'
   }
 
   fs.writeFileSync(forkedSpecPath, JSON.stringify(forkedSpec, null, 4));
