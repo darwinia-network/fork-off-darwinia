@@ -29,7 +29,7 @@ let chunksFetched = 0;
 let separator = false;
 const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
-let totol_key_count = 0;
+let total_keys_count = 0;
 let api;
 
 /**
@@ -155,8 +155,8 @@ async function fetchChunks(prefix, levelsRemaining, stream, at) {
     let keys = await provider.send('state_getKeysPaged', [prefix, page, null, at]);
     let key_count = keys.length;
     if (key_count > 0) {
-      totol_key_count += key_count;
-      console.log(chalk.green("Key fetched: " + totol_key_count));
+      total_keys_count += key_count;
+      console.log(chalk.green("Keys fetched: " + total_keys_count));
       // const pairs = await provider.send('state_queryStorageAt', [keys, at]);
       const values = await api.rpc.state.queryStorageAt(keys, at)
       if (values.length != keys.length) {
@@ -173,8 +173,8 @@ async function fetchChunks(prefix, levelsRemaining, stream, at) {
     }
 
     while (key_count == page) {
-      totol_key_count += key_count;
-      console.log(chalk.green("Key fetched: " + totol_key_count));
+      total_keys_count += key_count;
+      console.log(chalk.green("Keys fetched: " + total_keys_count));
       keys = await provider.send('state_getKeysPaged', [prefix, page, keys[key_count - 1], at]);
       key_count = keys.length;
       if (key_count > 0) {
