@@ -29,6 +29,9 @@ let chunksFetched = 0;
 let separator = false;
 const progressBar = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
+let total_keys_count = 0;
+let api;
+
 /**
  * All module prefixes except those mentioned in the skippedModulesPrefix will be added to this by the script.
  * If you want to add any past module or part of a skipped module, add the prefix here manually.
@@ -58,7 +61,6 @@ async function main() {
   }
   execSync('cat ' + wasmPath + ' | hexdump -ve \'/1 "%02x"\' > ' + hexPath);
 
-  let api;
   console.log(chalk.green('We are intentionally using the HTTP endpoint. If you see any warnings about that, please ignore them.'));
   if (!fs.existsSync(schemaPath)) {
     console.log(chalk.yellow('Custom Schema missing, using default schema.'));
@@ -80,7 +82,10 @@ async function main() {
     progressBar.start(totalChunks, 0);
     const stream = fs.createWriteStream(storagePath, { flags: 'a' });
     stream.write("[");
-    await fetchChunks("0x", chunksLevel, stream);
+    const at = await provider.send('chain_getFinalizedHead', []);
+
+    console.log(chalk.green('Starting to fetch key pairs at block: ' + at ));
+    await fetchChunks("0x", chunksLevel, stream, at);
     stream.write("]");
     stream.end();
     progressBar.stop();
@@ -144,13 +149,50 @@ async function main() {
 
 main();
 
-async function fetchChunks(prefix, levelsRemaining, stream) {
+const page = 512;
+async function fetchChunks(prefix, levelsRemaining, stream, at) {
   if (levelsRemaining <= 0) {
-    const pairs = await provider.send('state_getPairs', [prefix]);
-    if (pairs.length > 0) {
+    let keys = await provider.send('state_getKeysPaged', [prefix, page, null, at]);
+    let key_count = keys.length;
+    if (key_count > 0) {
+      total_keys_count += key_count;
+      console.log(chalk.green("Keys fetched: " + total_keys_count));
+      // const pairs = await provider.send('state_queryStorageAt', [keys, at]);
+      const values = await api.rpc.state.queryStorageAt(keys, at)
+      if (values.length != keys.length) {
+        console.log(chalk.red("values length: " + values.length + " and key length: " + keys.length + " not equal"));
+      }
+      let pairs = [];
+
+      for (let i = 0; i < keys.length; i++) {
+        pairs.push([keys[i], values[i]]);
+      }
+
       separator ? stream.write(",") : separator = true;
       stream.write(JSON.stringify(pairs).slice(1, -1));
     }
+
+    while (key_count == page) {
+      total_keys_count += key_count;
+      console.log(chalk.green("Keys fetched: " + total_keys_count));
+      keys = await provider.send('state_getKeysPaged', [prefix, page, keys[key_count - 1], at]);
+      key_count = keys.length;
+      if (key_count > 0) {
+        // const pairs = await provider.send('state_queryStorageAt', [keys, at]);
+        const values = await api.rpc.state.queryStorageAt(keys, at);
+        if (values.length != keys.length) {
+          console.log(chalk.red("values length: " + values.length + " and key length: " + keys.length + " not equal"));
+        }
+        let pairs = [];
+
+        for (let i = 0; i < keys.length; i++) {
+          pairs.push([keys[i], values[i]]);
+        }
+        separator ? stream.write(",") : separator = true;
+        stream.write(JSON.stringify(pairs).slice(1, -1));
+      }
+    }
+
     progressBar.update(++chunksFetched);
     return;
   }
@@ -159,12 +201,12 @@ async function fetchChunks(prefix, levelsRemaining, stream) {
   if (process.env.QUICK_MODE && levelsRemaining == 1) {
     let promises = [];
     for (let i = 0; i < 256; i++) {
-      promises.push(fetchChunks(prefix + i.toString(16).padStart(2, "0"), levelsRemaining - 1, stream));
+      promises.push(fetchChunks(prefix + i.toString(16).padStart(2, "0"), levelsRemaining - 1, stream, at));
     }
     await Promise.all(promises);
   } else {
     for (let i = 0; i < 256; i++) {
-      await fetchChunks(prefix + i.toString(16).padStart(2, "0"), levelsRemaining - 1, stream);
+      await fetchChunks(prefix + i.toString(16).padStart(2, "0"), levelsRemaining - 1, stream, at);
     }
   }
 }
